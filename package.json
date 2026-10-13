@@ -1,0 +1,82 @@
+{
+  "name": "@argszero/dsh-session-reference-guard",
+  "description": "A non-canonical `dsh-session:` literal in ordinary text fails the whole turn: `@deepseek-ai/dsh-session-reference` hands every text block of every direct user message to `parseSessionReferenceText` at `agent/pre-step` with no try/catch, and its pattern admits any base64url run as a payload — so a three-digit literal like `dsh-session:382` is decoded, refused, and thrown out of the step before a model is ever asked anything (`code: UNKNOWN`). The refusal message quotes the literal it refused, so pasting the error to report it fails the same way. This plugin joins the same waterfall ahead of the parser and neutralizes only the literals the shipped decoder itself refuses — asked of `decodeSessionReferenceUri`, imported at runtime — by escaping the scheme's colon, which a Markdown reader renders as a colon. A working mention can never be touched, nothing is deleted, and the turn proceeds. Inert when no literal would be refused. Zero runtime dependencies.",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/argszero/dsh-session-reference-guard.git"
+  },
+  "homepage": "https://github.com/argszero/dsh-session-reference-guard#readme",
+  "bugs": {
+    "url": "https://github.com/argszero/dsh-session-reference-guard/issues"
+  },
+  "keywords": [
+    "cordis",
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "session",
+    "session-reference",
+    "dsh-session",
+    "agent-pre-step",
+    "guard"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2 || ~4.0.5-alpha.1",
+    "@deepseek-ai/dsh-agent": ">=0.1.7-rc.2 <0.2.0 || >=0.2.0-rc.1 <0.2.1-alpha.2 || >=0.2.1-alpha.2 <0.3.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.2 <0.2.0 || >=0.2.0-rc.1 <0.2.1-alpha.2 || >=0.2.1-alpha.2 <0.3.0",
+    "@deepseek-ai/dsh-session-reference": ">=0.1.7-rc.2 <0.2.0 || >=0.2.0-rc.1 <0.2.1-alpha.2 || >=0.2.1-alpha.2 <0.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-session-reference": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5-alpha.1",
+    "@deepseek-ai/dsh-agent": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-session": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-session-reference": "0.2.1-alpha.2",
+    "@types/node": "^24.19.1",
+    "semver": "^7.8.5",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "pretest": "tsc",
+    "test": "node --test \"test/*.spec.mjs\"",
+    "prepublishOnly": "tsc",
+    "test:inject": "node scripts/inject-defects.mjs",
+    "probe:lines": "node scripts/probe-lines.mjs"
+  },
+  "engines": {
+    "node": "^22.19 || >=24"
+  }
+}

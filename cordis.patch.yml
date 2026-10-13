@@ -1,0 +1,85 @@
+# The @argszero/dsh-session-reference-guard bundle patch: mount and go.
+#
+# `@deepseek-ai/dsh-session-reference` reads every text block of every direct user
+# message at `agent/pre-step`, through `SessionReferenceResolver.prepareDirectMessages`:
+#
+#   const content = message.content.map((block) => {
+#     if (block.type !== 'text') return block
+#     const parsed = parseSessionReferenceText(block.text)   // no try/catch
+#     ...
+#   })
+#
+# and `parseSessionReferenceText` is strict where its pattern is loose. The pattern
+#
+#   /@\[((?:\\.|[^\\\]])*)\]\((dsh-session:[^\s)]*)\)|(dsh-session:[A-Za-z0-9_-]+)/gu
+#
+# keys on the literal `dsh-session:` and accepts any base64url-shaped run after it,
+# while `decodeSessionReferenceUri` then requires the payload to decode to a string
+# whose re-encoding is byte-identical to the URI. Text nobody meant as a reference
+# satisfies the pattern and fails the decode:
+#
+#   dsh-session:382      base64url -> two invalid UTF-8 bytes -> JSON.parse throws
+#   dsh-session:abc      base64url -> one invalid byte         -> JSON.parse throws
+#   dsh-session:ImFiYyJ  decodes to "abc", but the unused trailing bits are not
+#                        zero, so re-encoding gives ImFiYyI    -> "URI is not
+#                        canonical"
+#
+# Nothing catches the throw, so the whole turn ends before a model is asked
+# anything. And the throw carries the literal back: `invalid session reference URI
+# "dsh-session:382"` is exactly the text a user pastes into the next message to
+# report the failure — which fails the same way, in the same place. Discussion
+# #9613 is that report.
+#
+# This plugin closes the deployment half of it, without changing a core package:
+#
+#   1. It joins the same waterfall with `{ prepend: true }`. That is the seam the
+#      resolver reads, and a prepended listener that rewrites the payload's message
+#      array at its own ENTRANCE is seen by every consumer downstream of the chain,
+#      whatever order the two prepended listeners happen to arrive in — the
+#      resolver parses the decision its own `next()` returned, and every path to
+#      that decision goes through elements the guard already replaced.
+#   2. It asks the guarded parser itself whether a literal is one it would refuse:
+#      `loadCanonicality()` imports `decodeSessionReferenceUri` from
+#      `@deepseek-ai/dsh-session-reference` at mount and calls it on each candidate,
+#      turning its throw into `false`. The guard therefore cannot be stricter than
+#      the parser it guards, which is the failure that would matter: a mention that
+#      works must never be touched. When the package cannot be reached the mirrored
+#      predicate in `src/canonical.ts` runs instead, and `test/canonicality.spec.mjs`
+#      pins the two against each other over a corpus.
+#   3. For each refused literal it escapes the scheme's colon — `dsh-session:382`
+#      becomes `dsh-session\:382`. `:` is ASCII punctuation, so CommonMark reads
+#      `\:` as an escaped colon and renders it as one, and the raw text no longer
+#      contains the literal `dsh-session:` the pattern requires. Nothing is deleted
+#      and no invisible character is introduced.
+#
+# The plugin is inert when no literal would be refused: with nothing to break, it
+# rewrites nothing, logs nothing and returns the decision it was given. It touches
+# only the messages the resolver actually reads — the `user` source, `text` blocks
+# — and leaves every other message byte-identical.
+#
+# The real fix is upstream and it is small: a `try`/`catch` (or a canonicality
+# check) around the parse call in `prepareDirectMessages`, and a payload check that
+# requires a decodable reference rather than a base64url-shaped one. A guard that
+# rewrites text is the second-best answer to a defect that fails a whole turn — but
+# it is an answer available to a deployment that cannot patch the package.
+#
+# Optional config:
+#
+#   - set:
+#       - id: session-reference-guard
+#         config:
+#           # 'repair' (default) breaks each refused literal so the resolver cannot
+#           # read it as a reference, and the step proceeds.
+#           # 'report' writes nothing and logs what repair would have changed —
+#           # how to see what a deployment would rewrite before letting it rewrite.
+#           # The step still fails in this mode, because the text the resolver
+#           # rejects is still there.
+#           # 'off' installs no listener at all.
+#           mode: repair
+#
+# Nothing here writes to disk, patches a global, or refuses a tool call: the
+# plugin reads the step payload it is handed and replaces messages in it.
+
+- insert:
+    - id: session-reference-guard
+      name: '@argszero/dsh-session-reference-guard'
