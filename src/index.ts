@@ -61,7 +61,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { decodesCanonically, loadCanonicality, type Canonicality } from './canonical.ts'
 import { normalizeConfig, type Config, type Mode } from './config.ts'
-import { neutralizeInPlace, scanMessages } from './rewrite.ts'
+import { escapeScheme, neutralizeInPlace, scanMessages } from './rewrite.ts'
 
 /** Cordis plugin name, used by loader diagnostics. */
 export const name = 'session-reference-guard'
@@ -146,12 +146,19 @@ function announce(ctx: Context, agent: Agent, escaped: readonly string[], mode: 
 }
 
 /**
- * Render one URI for a log line, bounded.
+ * Render one URI for a log line, bounded — and inert.
+ *
+ * The colon is escaped here too. A warning that quotes a refused literal
+ * verbatim is a warning a user can copy into their next message, which is the
+ * failure this plugin exists to stop one level down; the escaped form reads the
+ * same and cannot be pasted back into a broken turn.
+ *
  * @param uri - the refused URI.
- * @returns a quoted, bounded rendering.
+ * @returns a quoted, bounded rendering whose text is not itself a literal.
  */
 function describe(uri: string): string {
-  const rendered = uri.length <= URI_LOG_BOUND ? uri : `${uri.slice(0, URI_LOG_BOUND)}…`
+  const escaped = escapeScheme(uri)
+  const rendered = escaped.length <= URI_LOG_BOUND ? escaped : `${escaped.slice(0, URI_LOG_BOUND)}…`
   return JSON.stringify(rendered)
 }
 

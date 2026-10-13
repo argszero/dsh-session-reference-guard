@@ -49,10 +49,15 @@ export interface MessageRewrite {
 
 /**
  * Break the scheme's colon, which is what the pattern keys on.
+ *
+ * Exported because a diagnostic must use it too: the whole point of this plugin
+ * is that a refused literal is self-propagating, and a log line that quotes the
+ * literal verbatim is one more place a user can copy it from.
+ *
  * @param uri - a complete `dsh-session:` URI.
  * @returns the same URI with an escaped colon in its scheme.
  */
-function escapeScheme(uri: string): string {
+export function escapeScheme(uri: string): string {
   return `${SCHEME_HEAD}\\:${uri.slice(SESSION_REFERENCE_SCHEME.length)}`
 }
 

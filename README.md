@@ -134,6 +134,21 @@ Or, if you compose `cordis.yml` by hand:
 An unrecognised `mode` is refused at mount rather than quietly replaced, because a
 deployment that misspells a mode must not silently get a different one.
 
+## Diagnostics
+
+`repair` reports once per agent — not once per step, because a session that keeps
+the text in context would otherwise log a line every turn — naming each literal it
+neutralized. It names it the way the rewrite writes it, with the colon escaped:
+
+```
+session-reference-guard: neutralized 1 non-canonical session-reference literal(s) in this step: "dsh-session\:382"
+```
+
+That rendering is not decoration. The defect this answers *is* a message that
+carries its own trigger, so a warning quoting the refused literal verbatim would
+be one more place to copy it from; the escaped form reads the same and cannot be
+pasted back into a broken turn. `report` mode renders it identically.
+
 ## What it is not
 
 - **It is not the fix.** The fix is upstream and it is small: a `try`/`catch` (or

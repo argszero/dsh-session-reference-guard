@@ -1,7 +1,7 @@
 {
   "name": "@argszero/dsh-session-reference-guard",
   "description": "A non-canonical `dsh-session:` literal in ordinary text fails the whole turn: `@deepseek-ai/dsh-session-reference` hands every text block of every direct user message to `parseSessionReferenceText` at `agent/pre-step` with no try/catch, and its pattern admits any base64url run as a payload — so a three-digit literal like `dsh-session:382` is decoded, refused, and thrown out of the step before a model is ever asked anything (`code: UNKNOWN`). The refusal message quotes the literal it refused, so pasting the error to report it fails the same way. This plugin joins the same waterfall ahead of the parser and neutralizes only the literals the shipped decoder itself refuses — asked of `decodeSessionReferenceUri`, imported at runtime — by escaping the scheme's colon, which a Markdown reader renders as a colon. A working mention can never be touched, nothing is deleted, and the turn proceeds. Inert when no literal would be refused. Zero runtime dependencies.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },

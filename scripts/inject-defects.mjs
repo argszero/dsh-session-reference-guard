@@ -129,6 +129,11 @@ const MUTATIONS = [
     edits: [['  if (reported.get(agent) === digest) return', "  if (reported.get(agent) === digest + '\\n') return"]],
   },
   {
+    name: 'the diagnostic quotes the refused literal verbatim, so copying the warning re-breaks the turn',
+    file: 'src/index.ts',
+    edits: [['  const escaped = escapeScheme(uri)', '  const escaped = uri']],
+  },
+  {
     name: 'repair stops being the default, so a deployment that configures nothing only reports',
     file: 'src/config.ts',
     edits: [["  const requested: string = config.mode ?? 'repair'", "  const requested: string = config.mode ?? 'report'"]],

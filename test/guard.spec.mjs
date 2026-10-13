@@ -105,13 +105,19 @@ test('report mode counts without writing, so the step still fails', async () => 
   assert.equal(logs.matching('would neutralize').length, 1)
 })
 
-test('report mode names the literal it would have broken', async () => {
+test('report mode names the literal it would have broken, in a form that cannot be pasted back', async () => {
   const { propose, logs } = await world({ config: { mode: 'report' } })
   const decision = await propose([userText(REPORTABLE)])
   assert.equal(textOf(decision.messages[0]), REPORTABLE, 'report mode must not write')
   const [record] = logs.matching('would neutralize')
   assert.ok(record !== undefined)
-  assert.ok(String(record.args[0]).includes('dsh-session:382'))
+  const line = String(record.args[0])
+  assert.ok(line.includes('382'), 'the refused literal must be named')
+  // The defect is that the refusal message carries its own trigger, so a user
+  // who copies the diagnostic re-breaks the turn. This plugin's diagnostic is
+  // one more place that could happen; the escaped form reads the same and is
+  // inert.
+  assert.ok(!line.includes('dsh-session:'), 'the diagnostic must not itself be a literal')
 })
 
 test('off mode installs no listener at all', async () => {
